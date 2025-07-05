@@ -1,91 +1,150 @@
 import os
 import json
-import subprocess
+import glob
 import shutil
+import subprocess
 
 # --------------- CONFIG ----------------
 INPUT_DIR = "input"
-INPUT_FILE = "org.json"
-
 OUTPUT_DIR = "output"
 OUTPUT_MMD_FILE = "aws_org_diagram.mmd"
-OUTPUT_IMAGE_FILE = "aws_org_diagram.png"
-# To use SVG instead, just swap this:
-# OUTPUT_IMAGE_FILE = "aws_org_diagram.svg"
+OUTPUT_IMAGE_FILE = "aws_org_diagram.png"  # or .svg
+SCALE_FACTOR = "5"  # Increase if you want even higher resolution
 # ---------------------------------------
 
 # ✅ Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# ✅ Construct input file path
-input_path = os.path.join(INPUT_DIR, INPUT_FILE)
-if not os.path.isfile(input_path):
-    print(f"❗ ERROR: Input file not found: {input_path}")
-    exit(1)
+# ---------------------------------------
+# ✅ 1️⃣ Load ROOT info
+# ---------------------------------------
+root_file = os.path.join(INPUT_DIR, "list-roots.json")
+with open(root_file) as f:
+    roots_data = json.load(f)
 
-print(f"✅ Reading input file: {input_path}")
+root_name = roots_data["Roots"][0]["Name"]
+print(f"✅ Root Name: {root_name}")
 
-# ✅ Load AWS Organizations JSON
-with open(input_path) as f:
-    data = json.load(f)
+# ---------------------------------------
+# ✅ 2️⃣ Load Organizational Units
+# ---------------------------------------
+ous_file = os.path.join(INPUT_DIR, "list-organizational-units-for-parent.json")
+with open(ous_file) as f:
+    ous_data = json.load(f)
 
-accounts = data.get("Accounts", [])
-if not accounts:
-    print("❗ ERROR: No accounts found in input JSON.")
-    exit(1)
+ous_list = ous_data.get("OrganizationalUnits", [])
+print(f"✅ Found {len(ous_list)} Organizational Units.")
 
-# ✅ Identify the Management Account (INVITED)
-master_account = None
-for account in accounts:
-    if account.get("JoinedMethod") == "INVITED":
-        master_account = account
-        break
+# ---------------------------------------
+# ✅ 3️⃣ Load Accounts for each OU
+# ---------------------------------------
+accounts_by_ou = {}
 
-if not master_account:
-    print("❗ ERROR: No Management (INVITED) account found in input.")
-    exit(1)
+account_files_pattern = os.path.join(INPUT_DIR, "list-accounts-for-parent-*.json")
+account_files = glob.glob(account_files_pattern)
+print(f"✅ Found {len(account_files)} account list files for OUs.")
 
-master_name = master_account["Name"]
-master_status = master_account["Status"]
+for account_file in account_files:
+    with open(account_file) as f:
+        accounts_data = json.load(f)
+    
+    # Extract OU Name from filename
+    filename = os.path.basename(account_file)
+    ou_name = filename.replace("list-accounts-for-parent-", "").replace(".json", "")
+    
+    accounts_list = accounts_data.get("Accounts", [])
+    accounts_by_ou[ou_name] = accounts_list
+    print(f"✅ Loaded {len(accounts_list)} accounts for OU Name: {ou_name}")
 
-# ✅ Build Mermaid diagram text
-lines = []
-lines.append("graph TD")
-lines.append(f'  Master["{master_name} ({master_status})"]')
+# ---------------------------------------
+# ✅ 4️⃣ Generate Mermaid Diagram
+# ---------------------------------------
+mermaid_lines = []
+mermaid_lines.append("graph TD")
 
-for account in accounts:
-    if account == master_account:
-        continue
-    name = account["Name"]
-    status = account["Status"]
-    # Sanitize node ID for Mermaid
-    node_id = name.replace(" ", "").replace("-", "")
-    lines.append(f'  Master --> {node_id}["{name} ({status})"]')
+# Add Root node
+mermaid_lines.append(f'  Root["{root_name}"]')
 
-# ✅ Write Mermaid .mmd file to output
+# ✅ Add links from Root to each OU to enforce hierarchy
+for ou in ous_list:
+    ou_name = ou["Name"]
+    clean_ou_name = ou_name.replace(" ", "").replace("-", "")
+    mermaid_lines.append(f'  Root --> {clean_ou_name}')
+
+# For class assignments
+class_assignments = []
+
+# Add subgraphs for each OU
+for ou in ous_list:
+    ou_name = ou["Name"]
+    clean_ou_name = ou_name.replace(" ", "").replace("-", "")
+
+    mermaid_lines.append(f'  subgraph {clean_ou_name} ["{ou_name}"]')
+
+    accounts = accounts_by_ou.get(ou_name, [])
+    if not accounts:
+        print(f"⚠️ WARNING: No accounts found for OU '{ou_name}'")
+
+    for account in accounts:
+        acc_name = account["Name"]
+        acc_status = account["Status"]
+        node_id = acc_name.replace(" ", "").replace("-", "")
+
+        # ✅ Rename if account name matches OU name
+        if acc_name.strip().lower() == ou_name.strip().lower():
+            print(f"⚠️ Renaming account '{acc_name}' in OU '{ou_name}' to '{acc_name} (Account)' to avoid cycle")
+            acc_name_display = f"{acc_name} (Account)"
+            node_id = node_id + "Account"
+        else:
+            acc_name_display = acc_name
+
+        # Node label with status
+        mermaid_lines.append(f'    {node_id}["{acc_name_display} ({acc_status})"]')
+        class_assignments.append((node_id, acc_status))
+
+    mermaid_lines.append("  end")
+
+# Add style definitions
+mermaid_lines.append("")
+mermaid_lines.append("classDef active fill:#28a745,stroke:#333,stroke-width:1px;")
+mermaid_lines.append("classDef suspended fill:#d73a49,stroke:#333,stroke-width:1px;")
+mermaid_lines.append("")
+
+# Assign classes
+for node_id, status in class_assignments:
+    if status == "ACTIVE":
+        mermaid_lines.append(f'class {node_id} active')
+    elif status == "SUSPENDED":
+        mermaid_lines.append(f'class {node_id} suspended')
+
+# ---------------------------------------
+# ✅ 5️⃣ Write to .mmd output file
+# ---------------------------------------
 output_mmd_path = os.path.join(OUTPUT_DIR, OUTPUT_MMD_FILE)
 with open(output_mmd_path, "w") as f:
-    f.write("\n".join(lines))
+    f.write("\n".join(mermaid_lines))
 
-print(f"✅ Mermaid .mmd file created at: {output_mmd_path}")
+print(f"✅ Mermaid diagram saved to: {output_mmd_path}")
 
-# ✅ Check for Mermaid CLI (mmdc) in PATH
+# ---------------------------------------
+# ✅ 6️⃣ Check for mmdc and render PNG/SVG
+# ---------------------------------------
 mmdc_path = shutil.which("mmdc")
 if not mmdc_path:
     print("❗ ERROR: Mermaid CLI (mmdc) not found in PATH.")
     print("✅ Install it with: npm install -g @mermaid-js/mermaid-cli")
     exit(1)
 
-print(f"✅ Mermaid CLI found: {mmdc_path}")
+print(f"✅ Mermaid CLI found at: {mmdc_path}")
 
-# ✅ Call Mermaid CLI to render PNG/SVG
 output_image_path = os.path.join(OUTPUT_DIR, OUTPUT_IMAGE_FILE)
 
 try:
     subprocess.run([
         mmdc_path,
         "-i", output_mmd_path,
-        "-o", output_image_path
+        "-o", output_image_path,
+        "-s", SCALE_FACTOR
     ], check=True)
     print(f"✅ Diagram image generated at: {output_image_path}")
 

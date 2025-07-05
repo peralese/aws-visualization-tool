@@ -2,26 +2,33 @@
 
 **Automate AWS architecture documentation by transforming AWS CLI output into clear, customizable diagrams.**  
 
-✅ Generate AWS Organizations diagrams *(available now)*  
-✅ Plan for broader AWS visualization support (VPCs, EC2, RDS, etc.)  
-✅ Built in Python with Mermaid diagram export  
+✅ Generate hierarchical AWS Organizations diagrams *(Root → OUs → Accounts)*  
+✅ Renames self-referencing accounts to avoid cycles  
+✅ Color-coded ACTIVE/SUSPENDED status  
+✅ Auto-exports Mermaid to PNG or SVG with configurable scaling  
+✅ Built in Python with Mermaid CLI integration  
 
 ---
 
 ## 🚀 Overview
 
-AWS Visualization Tool is designed to help cloud architects and engineers **document and visualize AWS environments automatically**.  
+AWS Visualization Tool helps cloud architects and engineers **document and visualize AWS Organizations automatically**.  
 
-⭐ **Current MVP:**  
-- Parses `aws organizations list-accounts` JSON output  
-- Identifies management account and member accounts  
-- Generates hierarchy diagrams using Mermaid syntax  
-- Auto-exports diagrams as PNG or SVG  
+⭐ **Current MVP Features:**  
+- Parses AWS Organizations CLI JSON output  
+- Identifies management account (Root) and Organizational Units (OUs)  
+- Explicitly links Root → OUs to enforce hierarchical layout  
+- Generates subgraphs for OUs containing accounts  
+- Renames self-referencing accounts (e.g. `OUName → OUName (Account)`) to avoid rendering errors  
+- Color-codes ACTIVE and SUSPENDED accounts  
+- Exports diagram automatically as PNG or SVG using Mermaid CLI with scaling  
 
 ⭐ **Future Goals:**  
-- Support for VPCs, subnets, EC2, RDS, Load Balancers, and more  
-- Visualize full account and network architecture  
-- Enable modular, reusable diagram generation  
+- Support for VPCs, subnets, EC2, RDS, Load Balancers, etc.  
+- Visualize complete AWS account and network architecture  
+- Modular, reusable diagram generation  
+- CLI arguments and interactive input  
+- Web-based UI for easy upload/generate/download  
 
 ---
 
@@ -37,15 +44,15 @@ aws_visualizations/
 ```
 
 ✅ By default:
-- Input = `input/org.json`
+- Input = `input/` folder
 - Output = `output/aws_org_diagram.mmd`, `output/aws_org_diagram.png`
 
 ---
 
 ## ⚙️ Requirements
 
-- Python 3.7+
-- Node.js & npm (for Mermaid CLI)
+- Python 3.7+  
+- Node.js & npm (for Mermaid CLI)  
 
 ---
 
@@ -80,10 +87,14 @@ mmdc -V
 
 ## 🗺️ How to Use
 
-✅ **Step 1:** Get your AWS Organizations account list:
+✅ **Step 1:** Collect AWS Organizations CLI output:
 
 ```bash
-aws organizations list-accounts > input/org.json
+aws organizations list-roots > input/list-roots.json
+aws organizations list-organizational-units-for-parent --parent-id <ROOT_ID> > input/list-organizational-units-for-parent.json
+
+# For each OU ID
+aws organizations list-accounts-for-parent --parent-id <OU_ID> > input/list-accounts-for-parent-<OU-Name>.json
 ```
 
 ✅ **Step 2:** Run the generator:
@@ -100,11 +111,12 @@ python main.py
 
 ## 🖼️ Example Output
 
-**Current Diagram:**  
-- Management account (root) node  
-- Child accounts with ACTIVE/SUSPENDED status  
-
-*(Color-coding and OU grouping planned in future enhancements.)*
+- Root node shown at top of hierarchy  
+- Explicit links from Root → OUs  
+- Subgraphs for each OU  
+- Accounts inside subgraphs  
+- Self-referencing accounts renamed (e.g. `AccountFactoryTerraform (Account)`)  
+- ACTIVE/SUSPENDED color-coded nodes  
 
 ---
 
@@ -112,9 +124,10 @@ python main.py
 
 ✅ **Near-term goals:**
 - Color-coded nodes (ACTIVE/SUSPENDED)
-- Organizational Units (OU) support
-- Command-line arguments for custom input/output paths
-- Interactive input file selection
+- Organizational Unit (OU) support (implemented)
+- Hierarchical layout with Root → OUs
+- Command-line arguments for custom input/output
+- Interactive file selection
 
 ✅ **Planned support for:**
 - VPC and subnet layouts
