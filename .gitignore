@@ -10,3 +10,7 @@ venv/
 .DS_Store
 Thumbs.db
 .vscode/
+# Exclude Flask upload/output folders
+webapp/uploads/
+webapp/outputs/
+

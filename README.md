@@ -1,126 +1,55 @@
 # AWS Visualization Tool
 
-**Automate AWS Organizations documentation with easy-to-use, customizable diagrams.**  
+A utility to visualize your AWS Organizations hierarchy as clear, professional diagrams. It transforms AWS CLI JSON exports into Mermaid diagrams and renders them as PNG or SVG images—complete with OU hierarchy, accounts, and status coloring.
 
-✅ Generate hierarchical AWS Organizations diagrams *(Root → OUs → Accounts)*  
-✅ Supports self-referencing account renaming to avoid cycles  
-✅ Color-coded ACTIVE/SUSPENDED status  
-✅ Auto-generates Mermaid diagram + image export (PNG/SVG)  
-✅ CLI *and* interactive prompts for configuration  
-✅ Normalized naming for robust matching  
-✅ Organized, timestamped output folders for easy history  
+## Features
 
----
+- Input:
+  - AWS Organizations CLI JSON exports:
+    - `list-roots.json`
+    - `list-organizational-units-for-parent.json`
+    - `list-accounts-for-parent-*.json`
+- Outputs:
+  - Mermaid `.mmd` diagram source
+  - Rendered PNG or SVG image
+  - Timestamped subfolders for organized history
+- CLI interface:
+  - Interactive prompts
+  - Command-line arguments for automation
+  - User-defined output format (PNG/SVG) and scale factor
+- Webapp interface (Flask):
+  - Upload multiple JSON files or a single ZIP bundle
+  - Choose output format (PNG/SVG)
+  - Specify scale factor (e.g., 1, 2, 3, ...)
+  - Flash error handling and user-friendly feedback
 
-## 🚀 Overview
+## Installation & Setup
 
-AWS Visualization Tool helps architects and engineers **document and visualize AWS Organizations** automatically.  
+### Requirements
+- Python 3.8+
+- Node.js / npm (for Mermaid CLI)
 
-⭐ **Current Features:**  
-- Parses AWS Organizations CLI JSON output  
-- Detects management account (Root) and Organizational Units (OUs)  
-- Explicitly links Root → OUs to enforce hierarchical layout  
-- Generates subgraphs for OUs containing accounts  
-- Renames self-referencing accounts (e.g. `OUName → OUName (Account)`) to avoid rendering errors  
-- Color-codes ACTIVE and SUSPENDED accounts  
-- Normalizes naming to match files and OUs robustly  
-- Saves diagrams to **timestamped subfolders** for easy versioning  
-- Fully configurable via CLI or interactive prompts  
-
----
-
-## 📦 Project Structure
-
+### Install Dependencies
 ```
-aws_visualizations/
-  input/            # Place AWS CLI JSON outputs here
-  output/           # Auto-created timestamped folders with generated diagrams
-  main.py           # Main Python generator script
-  .gitignore
-  README.md
-```
-
-✅ Example output after a run:
-
-```
-output/
-  2025-06-30-221530/
-    aws_org_diagram.mmd
-    aws_org_diagram.png
-```
-
----
-
-## ⚙️ Requirements
-
-- Python 3.7+  
-- Node.js & npm (for Mermaid CLI)  
-
----
-
-## ✅ Installation
-
-1️⃣ Clone this repository:
-
-```bash
-git clone https://github.com/peralese/aws-visualization-tool.git
-cd aws-visualization-tool
-```
-
-2️⃣ Install Python dependencies (optional):
-
-```bash
-pip install -r requirements.txt
-```
-
-3️⃣ Install Mermaid CLI:
-
-```bash
+pip install Flask
 npm install -g @mermaid-js/mermaid-cli
 ```
 
-✅ Verify installation:
-
-```bash
-mmdc -V
+### Export Your AWS Organizations Data
 ```
-
----
-
-## 🗺️ How to Use
-
-✅ **Step 1:** Collect AWS Organizations CLI output:
-
-```bash
-aws organizations list-roots > input/list-roots.json
-aws organizations list-organizational-units-for-parent --parent-id <ROOT_ID> > input/list-organizational-units-for-parent.json
-
-# For each OU ID
-aws organizations list-accounts-for-parent --parent-id <OU_ID> > input/list-accounts-for-parent-<OU-Name>.json
+aws organizations list-roots > list-roots.json
+aws organizations list-organizational-units-for-parent --parent-id <root-id> > list-organizational-units-for-parent.json
+aws organizations list-accounts-for-parent --parent-id <ou-id> > list-accounts-for-parent-<OU>.json
 ```
+Place all resulting JSON files in one folder.
 
----
+## Running the CLI Tool
 
-✅ **Step 2:** Run the generator:
-
-⭐ Fully automatic with prompts:
-
-```bash
+**Interactive mode:**
+```
 python main.py
 ```
-
-✅ Or with CLI arguments:
-
-```bash
-python main.py --input myinputs --output myoutputs --format svg --scale 3
-```
-
----
-
-✅ **Interactive prompts available**:
-
-If you don’t pass an argument, you’ll be prompted:
-
+You’ll be prompted for:
 ```
 Input folder [input]:
 Base output folder [output]:
@@ -128,14 +57,44 @@ Image format (png/svg) [png]:
 Scale factor [2]:
 ```
 
-✅ You can hit ENTER to accept defaults.
+**Command-line arguments:**
+```
+python main.py --input input --output output --format svg --scale 3
+```
+Supports automation in scripts and CI/CD pipelines.
 
----
+## Running the Webapp
 
-## ✅ 📦 Output Structure
+Start the Flask server:
+```
+cd webapp
+flask run
+```
+Open in your browser:
+```
+http://localhost:5000
+```
+- Upload multiple JSON files or a single ZIP archive
+- Choose output format (PNG/SVG)
+- Specify scale factor
+- Click **Generate Diagram** to receive your downloadable image
 
-✅ Every run creates a **timestamped subfolder** in your output directory:
+## Example Project Structure
+```
+aws_visualizations/
+  input/                     ← CLI input files
+  output/                    ← CLI results (timestamped folders)
+  main.py                    ← CLI entry point
+  generator.py               ← Shared generation logic
 
+  webapp/
+    app.py                   ← Flask web server
+    templates/
+      index.html             ← Web upload form
+    uploads/                 ← Temporary upload storage
+    outputs/                 ← Generated diagrams
+```
+Example CLI output folder:
 ```
 output/
   2025-06-30-221530/
@@ -143,63 +102,26 @@ output/
     aws_org_diagram.png
 ```
 
-✅ Keeps a **complete history** of all generated diagrams.
+## Diagram Features
 
----
+- Root node explicitly linked to each OU
+- OU subgraphs with contained accounts
+- Self-referencing accounts automatically renamed to avoid cycles
+- Color-coded ACTIVE and SUSPENDED status
+- Supports PNG and SVG output formats
+- Scalable resolution with `--scale` option
+- Clean, timestamped output folders for history and audit
 
-## 🖼️ Example Diagram Features
+## Potential Future Enhancements
 
-- Root node explicitly linked to each OU  
-- OU subgraphs with contained accounts  
-- Self-referencing accounts renamed safely  
-- Color-coded ACTIVE and SUSPENDED status  
-- Supports PNG and SVG output formats  
-- Scalable resolution with `--scale` option  
-
----
-
-## 🌟 Roadmap
-
-✅ **Completed features:**
-- Hierarchical Root → OU → Accounts layout
-- Self-referencing account renaming
-- Color-coded ACTIVE/SUSPENDED nodes
-- Automatic .mmd + PNG/SVG generation
-- Configurable scale factor
-- Robust name normalization
-- CLI arguments for configuration
-- Interactive input prompts
-- Timestamped output folders for easy history
-
-✅ **Near-term planned features:**
-- Advanced styling options (themes, shapes)
-- Improved output file naming
-
-✅ **Potential future enhancements:**
-- Nested OU hierarchy rendering
-- Support for other AWS resources (VPC, Subnets, EC2, RDS)
+- Inline diagram preview in webapp
+- Nicer styling with Bootstrap
+- Input validation before generation (missing required files check)
+- Auto-cleanup of old output folders
+- Support for nested OU hierarchies
 - Packaging as an installable CLI tool
-- Web-based UI for upload/generate/download
+- Hosting the Flask interface online
 
----
+## Author
 
-## 🤝 Contributing
-
-We welcome contributions!  
-- Report issues  
-- Submit feature requests  
-- Open pull requests for improvements  
-
----
-
-## 📜 License
-
-[MIT License](LICENSE)
-
----
-
-## ⭐ Author
-
-- **Erick Perales**  
-  [https://github.com/peralese](https://github.com/peralese)
-
+Erick Perales  — IT Architect, Cloud Migration Specialist

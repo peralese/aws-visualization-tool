@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AWS Visualization Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+      background-color: #f9f9f9;
+    }
+    h2 {
+      color: #333;
+    }
+    form {
+      background-color: #fff;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      max-width: 500px;
+    }
+    input, select, button {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .messages {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: 4px;
+      background-color: #ffe0e0;
+      color: #a94442;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Upload your AWS Organizations JSON files or ZIP Bundle</h2>
+  
+  <form method="POST" enctype="multipart/form-data">
+    <label for="files">Select JSON files or a ZIP archive:</label>
+    <input type="file" name="files" id="files" multiple required>
+    
+    <p>
+      <label for="format">Choose output format:</label>
+      <select name="format" id="format">
+        <option value="png" selected>PNG</option>
+        <option value="svg">SVG</option>
+      </select>
+    </p>
+
+    <p>
+      <label for="scale">Scale factor:</label>
+      <input type="number" name="scale" id="scale" value="2" min="1" step="1" required>
+    </p>
+    
+    <button type="submit">Generate Diagram</button>
+  </form>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="messages">
+        <ul>
+          {% for msg in messages %}
+            <li>{{ msg }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  {% endwith %}
+
+</body>
+</html>
+
+
