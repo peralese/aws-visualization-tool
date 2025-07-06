@@ -1,34 +1,31 @@
 # AWS Visualization Tool
 
-**Automate AWS architecture documentation by transforming AWS CLI output into clear, customizable diagrams.**  
+**Automate AWS Organizations documentation with easy-to-use, customizable diagrams.**  
 
 ✅ Generate hierarchical AWS Organizations diagrams *(Root → OUs → Accounts)*  
-✅ Renames self-referencing accounts to avoid cycles  
+✅ Supports self-referencing account renaming to avoid cycles  
 ✅ Color-coded ACTIVE/SUSPENDED status  
-✅ Auto-exports Mermaid to PNG or SVG with configurable scaling  
-✅ Built in Python with Mermaid CLI integration  
+✅ Auto-generates Mermaid diagram + image export (PNG/SVG)  
+✅ CLI *and* interactive prompts for configuration  
+✅ Normalized naming for robust matching  
+✅ Organized, timestamped output folders for easy history  
 
 ---
 
 ## 🚀 Overview
 
-AWS Visualization Tool helps cloud architects and engineers **document and visualize AWS Organizations automatically**.  
+AWS Visualization Tool helps architects and engineers **document and visualize AWS Organizations** automatically.  
 
-⭐ **Current MVP Features:**  
+⭐ **Current Features:**  
 - Parses AWS Organizations CLI JSON output  
-- Identifies management account (Root) and Organizational Units (OUs)  
+- Detects management account (Root) and Organizational Units (OUs)  
 - Explicitly links Root → OUs to enforce hierarchical layout  
 - Generates subgraphs for OUs containing accounts  
 - Renames self-referencing accounts (e.g. `OUName → OUName (Account)`) to avoid rendering errors  
 - Color-codes ACTIVE and SUSPENDED accounts  
-- Exports diagram automatically as PNG or SVG using Mermaid CLI with scaling  
-
-⭐ **Future Goals:**  
-- Support for VPCs, subnets, EC2, RDS, Load Balancers, etc.  
-- Visualize complete AWS account and network architecture  
-- Modular, reusable diagram generation  
-- CLI arguments and interactive input  
-- Web-based UI for easy upload/generate/download  
+- Normalizes naming to match files and OUs robustly  
+- Saves diagrams to **timestamped subfolders** for easy versioning  
+- Fully configurable via CLI or interactive prompts  
 
 ---
 
@@ -36,16 +33,21 @@ AWS Visualization Tool helps cloud architects and engineers **document and visua
 
 ```
 aws_visualizations/
-  input/            # Place your AWS CLI JSON output here
-  output/           # Generated Mermaid (.mmd) and images
+  input/            # Place AWS CLI JSON outputs here
+  output/           # Auto-created timestamped folders with generated diagrams
   main.py           # Main Python generator script
   .gitignore
   README.md
 ```
 
-✅ By default:
-- Input = `input/` folder
-- Output = `output/aws_org_diagram.mmd`, `output/aws_org_diagram.png`
+✅ Example output after a run:
+
+```
+output/
+  2025-06-30-221530/
+    aws_org_diagram.mmd
+    aws_org_diagram.png
+```
 
 ---
 
@@ -97,49 +99,87 @@ aws organizations list-organizational-units-for-parent --parent-id <ROOT_ID> > i
 aws organizations list-accounts-for-parent --parent-id <OU_ID> > input/list-accounts-for-parent-<OU-Name>.json
 ```
 
+---
+
 ✅ **Step 2:** Run the generator:
+
+⭐ Fully automatic with prompts:
 
 ```bash
 python main.py
 ```
 
-✅ **Result:**
-- Mermaid diagram file: `output/aws_org_diagram.mmd`
-- Rendered image (PNG/SVG): `output/aws_org_diagram.png`
+✅ Or with CLI arguments:
+
+```bash
+python main.py --input myinputs --output myoutputs --format svg --scale 3
+```
 
 ---
 
-## 🖼️ Example Output
+✅ **Interactive prompts available**:
 
-- Root node shown at top of hierarchy  
-- Explicit links from Root → OUs  
-- Subgraphs for each OU  
-- Accounts inside subgraphs  
-- Self-referencing accounts renamed (e.g. `AccountFactoryTerraform (Account)`)  
-- ACTIVE/SUSPENDED color-coded nodes  
+If you don’t pass an argument, you’ll be prompted:
+
+```
+Input folder [input]:
+Base output folder [output]:
+Image format (png/svg) [png]:
+Scale factor [2]:
+```
+
+✅ You can hit ENTER to accept defaults.
+
+---
+
+## ✅ 📦 Output Structure
+
+✅ Every run creates a **timestamped subfolder** in your output directory:
+
+```
+output/
+  2025-06-30-221530/
+    aws_org_diagram.mmd
+    aws_org_diagram.png
+```
+
+✅ Keeps a **complete history** of all generated diagrams.
+
+---
+
+## 🖼️ Example Diagram Features
+
+- Root node explicitly linked to each OU  
+- OU subgraphs with contained accounts  
+- Self-referencing accounts renamed safely  
+- Color-coded ACTIVE and SUSPENDED status  
+- Supports PNG and SVG output formats  
+- Scalable resolution with `--scale` option  
 
 ---
 
 ## 🌟 Roadmap
 
-✅ **Near-term goals:**
-- Color-coded nodes (ACTIVE/SUSPENDED)
-- Organizational Unit (OU) support (implemented)
-- Hierarchical layout with Root → OUs
-- Command-line arguments for custom input/output
-- Interactive file selection
+✅ **Completed features:**
+- Hierarchical Root → OU → Accounts layout
+- Self-referencing account renaming
+- Color-coded ACTIVE/SUSPENDED nodes
+- Automatic .mmd + PNG/SVG generation
+- Configurable scale factor
+- Robust name normalization
+- CLI arguments for configuration
+- Interactive input prompts
+- Timestamped output folders for easy history
 
-✅ **Planned support for:**
-- VPC and subnet layouts
-- EC2 instances in subnets
-- RDS instances and networking
-- Security Groups and NACLs
-- Load balancers and other AWS resources
+✅ **Near-term planned features:**
+- Advanced styling options (themes, shapes)
+- Improved output file naming
 
-✅ **Possible future enhancements:**
-- Packaged as installable CLI tool
+✅ **Potential future enhancements:**
+- Nested OU hierarchy rendering
+- Support for other AWS resources (VPC, Subnets, EC2, RDS)
+- Packaging as an installable CLI tool
 - Web-based UI for upload/generate/download
-- Export to PDF/Visio formats
 
 ---
 
@@ -162,3 +202,4 @@ We welcome contributions!
 
 - **Erick Perales**  
   [https://github.com/peralese](https://github.com/peralese)
+
