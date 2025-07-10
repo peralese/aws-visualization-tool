@@ -1,18 +1,26 @@
 # AWS Visualization Tool
 
-A utility to visualize your AWS Organizations hierarchy as clear, professional diagrams. It transforms AWS CLI JSON exports into Mermaid diagrams and renders them as PNG or SVG images—complete with OU hierarchy, accounts, and status coloring.
+A utility to visualize your AWS Organizations hierarchy as clear, professional diagrams **and structured documentation tables**.  
+
+It converts AWS CLI JSON exports into **Mermaid** diagrams (PNG/SVG) *and* generates **CSV** and **Word (.docx)** tables summarizing your AWS accounts and Organizational Units.
+
+---
 
 ## Features
 
-- Input:
+- Inputs:
   - AWS Organizations CLI JSON exports:
     - `list-roots.json`
     - `list-organizational-units-for-parent.json`
     - `list-accounts-for-parent-*.json`
+    - `list-accounts.json` *(new - complete master account list)*
 - Outputs:
   - Mermaid `.mmd` diagram source
-  - Rendered PNG or SVG image
+  - Rendered PNG or SVG diagram
   - Timestamped subfolders for organized history
+  - CSV and DOCX tables:
+    - **Master Account Table** (all accounts, with OU assignment)
+    - **OU Breakdown Table** (accounts grouped by OU)
 - CLI interface:
   - Interactive prompts
   - Command-line arguments for automation
@@ -23,6 +31,8 @@ A utility to visualize your AWS Organizations hierarchy as clear, professional d
   - Specify scale factor (e.g., 1, 2, 3, ...)
   - Flash error handling and user-friendly feedback
 
+---
+
 ## Installation & Setup
 
 ### Requirements
@@ -31,7 +41,7 @@ A utility to visualize your AWS Organizations hierarchy as clear, professional d
 
 ### Install Dependencies
 ```
-pip install Flask
+pip install Flask python-docx
 npm install -g @mermaid-js/mermaid-cli
 ```
 
@@ -40,8 +50,11 @@ npm install -g @mermaid-js/mermaid-cli
 aws organizations list-roots > list-roots.json
 aws organizations list-organizational-units-for-parent --parent-id <root-id> > list-organizational-units-for-parent.json
 aws organizations list-accounts-for-parent --parent-id <ou-id> > list-accounts-for-parent-<OU>.json
+aws organizations list-accounts > list-accounts.json
 ```
 Place all resulting JSON files in one folder.
+
+---
 
 ## Running the CLI Tool
 
@@ -63,6 +76,8 @@ python main.py --input input --output output --format svg --scale 3
 ```
 Supports automation in scripts and CI/CD pipelines.
 
+---
+
 ## Running the Webapp
 
 Start the Flask server:
@@ -77,7 +92,9 @@ http://localhost:5000
 - Upload multiple JSON files or a single ZIP archive
 - Choose output format (PNG/SVG)
 - Specify scale factor
-- Click **Generate Diagram** to receive your downloadable image
+- Click **Generate Diagram** to receive your downloadable image and tables
+
+---
 
 ## Example Project Structure
 ```
@@ -92,7 +109,7 @@ aws_visualizations/
     templates/
       index.html             ← Web upload form
     uploads/                 ← Temporary upload storage
-    outputs/                 ← Generated diagrams
+    outputs/                 ← Generated diagrams and tables
 ```
 Example CLI output folder:
 ```
@@ -100,7 +117,31 @@ output/
   2025-06-30-221530/
     aws_org_diagram.mmd
     aws_org_diagram.png
+    aws_org_all_accounts.csv
+    aws_org_all_accounts.docx
+    aws_org_accounts_by_ou.csv
+    aws_org_accounts_by_ou.docx
 ```
+
+---
+
+## Outputs
+
+✅ **Mermaid Diagram**  
+- Shows Root ➜ OUs ➜ Accounts hierarchy
+- Color-coded ACTIVE/SUSPENDED
+- Supports PNG and SVG
+
+✅ **Master Account Table**  
+- All accounts from list-accounts.json
+- Includes OU assignment or “None”
+- CSV and DOCX formats
+
+✅ **OU Breakdown Table**  
+- Only accounts assigned to OUs
+- CSV and DOCX formats
+
+---
 
 ## Diagram Features
 
@@ -112,6 +153,8 @@ output/
 - Scalable resolution with `--scale` option
 - Clean, timestamped output folders for history and audit
 
+---
+
 ## Potential Future Enhancements
 
 - Inline diagram preview in webapp
@@ -122,6 +165,9 @@ output/
 - Packaging as an installable CLI tool
 - Hosting the Flask interface online
 
+---
+
 ## Author
 
 Erick Perales  — IT Architect, Cloud Migration Specialist
+
