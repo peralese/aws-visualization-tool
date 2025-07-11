@@ -2,7 +2,7 @@
 
 A utility to visualize your AWS Organizations hierarchy as clear, professional diagrams **and structured documentation tables**.  
 
-It converts AWS CLI JSON exports into **Mermaid** diagrams (PNG/SVG) *and* generates **CSV** and **Word (.docx)** tables summarizing your AWS accounts and Organizational Units.
+It converts AWS CLI JSON exports into **Mermaid** diagrams (PNG/SVG) *and* generates **CSV** and **Word (.docx)** tables summarizing your AWS accounts, Organizational Units, and Service Control Policy (SCP) assignments.
 
 ---
 
@@ -13,14 +13,18 @@ It converts AWS CLI JSON exports into **Mermaid** diagrams (PNG/SVG) *and* gener
     - `list-roots.json`
     - `list-organizational-units-for-parent.json`
     - `list-accounts-for-parent-*.json`
-    - `list-accounts.json` *(new - complete master account list)*
+    - `list-accounts.json` *(complete master account list)*
+    - `Policy-Account-<Account Name>.json` *(SCPs attached to Accounts)*
+    - `Policy-OU-<OU Name>.json` *(SCPs attached to OUs)*
 - Outputs:
   - Mermaid `.mmd` diagram source
   - Rendered PNG or SVG diagram
   - Timestamped subfolders for organized history
   - CSV and DOCX tables:
-    - **Master Account Table** (all accounts, with OU assignment)
+    - **Master Account Table** (all accounts with OU assignment)
     - **OU Breakdown Table** (accounts grouped by OU)
+    - **SCP Assignments for Accounts**
+    - **SCP Assignments for OUs**
 - CLI interface:
   - Interactive prompts
   - Command-line arguments for automation
@@ -51,6 +55,12 @@ aws organizations list-roots > list-roots.json
 aws organizations list-organizational-units-for-parent --parent-id <root-id> > list-organizational-units-for-parent.json
 aws organizations list-accounts-for-parent --parent-id <ou-id> > list-accounts-for-parent-<OU>.json
 aws organizations list-accounts > list-accounts.json
+```
+### Export Service Control Policy Attachments
+For each OU and Account:
+```
+aws organizations list-policies-for-target --target-id <target-id> --filter SERVICE_CONTROL_POLICY > Policy-OU-<OU Name>.json
+aws organizations list-policies-for-target --target-id <target-id> --filter SERVICE_CONTROL_POLICY > Policy-Account-<Account Name>.json
 ```
 Place all resulting JSON files in one folder.
 
@@ -114,13 +124,17 @@ aws_visualizations/
 Example CLI output folder:
 ```
 output/
-  2025-06-30-221530/
+  2025-07-11-145100/
     aws_org_diagram.mmd
     aws_org_diagram.png
     aws_org_all_accounts.csv
     aws_org_all_accounts.docx
     aws_org_accounts_by_ou.csv
     aws_org_accounts_by_ou.docx
+    aws_org_scp_accounts.csv
+    aws_org_scp_accounts.docx
+    aws_org_scp_ous.csv
+    aws_org_scp_ous.docx
 ```
 
 ---
@@ -139,6 +153,14 @@ output/
 
 ✅ **OU Breakdown Table**  
 - Only accounts assigned to OUs
+- CSV and DOCX formats
+
+✅ **SCP Assignments for Accounts**  
+- All Service Control Policies attached to accounts
+- CSV and DOCX formats
+
+✅ **SCP Assignments for OUs**  
+- All Service Control Policies attached to OUs
 - CSV and DOCX formats
 
 ---
@@ -170,4 +192,5 @@ output/
 ## Author
 
 Erick Perales  — IT Architect, Cloud Migration Specialist
+
 

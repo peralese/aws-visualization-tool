@@ -75,6 +75,9 @@ def generate_diagram(input_dir, output_base_dir, image_format="png", scale="2"):
     ous_list = ous_data.get("OrganizationalUnits", [])
     print(f"✅ Found {len(ous_list)} Organizational Units.")
 
+    # ✅ Build OU name -> ID map
+    ou_name_to_id = {ou["Name"]: ou["Id"] for ou in ous_list}
+
     # ---------------------------------------
     # ✅ Load list-accounts.json (ALL accounts)
     # ---------------------------------------
@@ -83,6 +86,9 @@ def generate_diagram(input_dir, output_base_dir, image_format="png", scale="2"):
         all_accounts_data = json.load(f)
     all_accounts_list = all_accounts_data.get("Accounts", [])
     print(f"✅ Loaded {len(all_accounts_list)} total accounts from list-accounts.json.")
+
+    # ✅ Build Account name -> ID map
+    account_name_to_id = {acct["Name"]: acct["Id"] for acct in all_accounts_list}
 
     # ---------------------------------------
     # ✅ Load Accounts per OU
@@ -103,9 +109,8 @@ def generate_diagram(input_dir, output_base_dir, image_format="png", scale="2"):
         print(f"✅ Loaded {len(accounts_list)} accounts for OU Name: {ou_name_raw}")
 
     # ---------------------------------------
-    # ✅ Prepare Data for Tables
+    # ✅ Prepare Data for Existing Tables
     # ---------------------------------------
-    # Build mapping of Account ID -> OU Name
     account_id_to_ou = {}
     for ou in ous_list:
         ou_name = ou["Name"]
@@ -113,7 +118,6 @@ def generate_diagram(input_dir, output_base_dir, image_format="png", scale="2"):
         for account in accounts_by_ou.get(clean_ou_name, []):
             account_id_to_ou[account["Id"]] = ou_name
 
-    # ✅ Master Account Table (all accounts)
     master_table_data = []
     for acct in all_accounts_list:
         acct_id = acct.get("Id", "Unknown")
@@ -122,7 +126,6 @@ def generate_diagram(input_dir, output_base_dir, image_format="png", scale="2"):
         ou_name = account_id_to_ou.get(acct_id, "None")
         master_table_data.append([acct_name, acct_id, acct_status, ou_name])
 
-    # ✅ OU Table (only assigned)
     ou_table_data = []
     for ou in ous_list:
         ou_name = ou["Name"]
@@ -133,9 +136,7 @@ def generate_diagram(input_dir, output_base_dir, image_format="png", scale="2"):
             acct_status = account["Status"]
             ou_table_data.append([ou_name, acct_name, acct_id, acct_status])
 
-    # ---------------------------------------
-    # ✅ Write Both Tables
-    # ---------------------------------------
+    # ✅ Write Master & OU Tables
     export_table_csv_docx(
         master_table_data,
         ["Account Name", "Account ID", "Status", "OU Name"],
@@ -143,7 +144,6 @@ def generate_diagram(input_dir, output_base_dir, image_format="png", scale="2"):
         os.path.join(final_output_dir, "aws_org_all_accounts.docx"),
         "AWS Organizations - All Accounts (Master List)"
     )
-
     export_table_csv_docx(
         ou_table_data,
         ["OU Name", "Account Name", "Account ID", "Status"],
@@ -151,6 +151,66 @@ def generate_diagram(input_dir, output_base_dir, image_format="png", scale="2"):
         os.path.join(final_output_dir, "aws_org_accounts_by_ou.docx"),
         "AWS Organizations - Accounts by OU"
     )
+
+    # ---------------------------------------
+    # ✅ NEW: Process SCP Assignments
+    # ---------------------------------------
+    scp_accounts_data = []
+    scp_ous_data = []
+
+    policy_files = glob.glob(os.path.join(input_dir, "Policy-*.json"))
+    for policy_file in policy_files:
+        filename = os.path.basename(policy_file)
+        if filename.startswith("Policy-Account-"):
+            target_type = "Account"
+            target_name = filename.replace("Policy-Account-", "").replace(".json", "")
+            target_id = account_name_to_id.get(target_name, "Unknown")
+        elif filename.startswith("Policy-OU-"):
+            target_type = "OU"
+            target_name = filename.replace("Policy-OU-", "").replace(".json", "")
+            target_id = ou_name_to_id.get(target_name, "Unknown")
+        else:
+            continue
+
+        with open(policy_file) as f:
+            policies_data = json.load(f)
+        policies = policies_data.get("Policies", [])
+        for policy in policies:
+            row = [
+                target_name,
+                target_id,
+                policy.get("Name", "Unknown"),
+                policy.get("Id", "Unknown"),
+                policy.get("AwsManaged", False)
+            ]
+            if target_type == "Account":
+                scp_accounts_data.append(row)
+            elif target_type == "OU":
+                scp_ous_data.append(row)
+
+    # ✅ Write SCP Assignments Tables
+    export_table_csv_docx(
+        scp_accounts_data,
+        ["Account Name", "Account ID", "Policy Name", "Policy ID", "AwsManaged"],
+        os.path.join(final_output_dir, "aws_org_scp_accounts.csv"),
+        os.path.join(final_output_dir, "aws_org_scp_accounts.docx"),
+        "AWS Organizations - SCP Assignments for Accounts"
+    )
+    export_table_csv_docx(
+        scp_ous_data,
+        ["OU Name", "OU ID", "Policy Name", "Policy ID", "AwsManaged"],
+        os.path.join(final_output_dir, "aws_org_scp_ous.csv"),
+        os.path.join(final_output_dir, "aws_org_scp_ous.docx"),
+        "AWS Organizations - SCP Assignments for OUs"
+    )
+
+    # ---------------------------------------
+    # ✅ Mermaid Diagram Generation
+    # ---------------------------------------
+    # (Unchanged from before - your diagram code goes here, or keep as-is.)
+
+    # ✅ Add your existing Mermaid diagram generation below...
+
 
     # ---------------------------------------
     # ✅ Build Mermaid Diagram
