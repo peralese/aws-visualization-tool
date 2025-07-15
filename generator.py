@@ -60,7 +60,12 @@ def generate_diagram(input_dir, output_base_dir, image_format="png", scale="2"):
     # ---------------------------------------
     # ✅ Load ROOT info
     # ---------------------------------------
-    root_file = os.path.join(input_dir, "list-roots.json")
+    # root_file = os.path.join(input_dir, "list-roots.json")
+    root_files = glob.glob(os.path.join(input_dir, "**", "list-roots.json"), recursive=True)
+    if not root_files:
+        raise FileNotFoundError("❗ list-roots.json not found anywhere in input folder.")
+    root_file = root_files[0]
+
     with open(root_file) as f:
         roots_data = json.load(f)
     root_name = roots_data["Roots"][0]["Name"]
@@ -69,7 +74,13 @@ def generate_diagram(input_dir, output_base_dir, image_format="png", scale="2"):
     # ---------------------------------------
     # ✅ Load Organizational Units
     # ---------------------------------------
-    ous_file = os.path.join(input_dir, "list-organizational-units-for-parent.json")
+    # ous_file = os.path.join(input_dir, "list-organizational-units-for-parent.json")
+    ous_files = glob.glob(os.path.join(input_dir, "**", "list-organizational-units-for-parent.json"), recursive=True)
+    if not ous_files:
+        raise FileNotFoundError("❗ list-organizational-units-for-parent.json not found anywhere in input folder.")
+    ous_file = ous_files[0]
+
+
     with open(ous_file) as f:
         ous_data = json.load(f)
     ous_list = ous_data.get("OrganizationalUnits", [])
@@ -81,7 +92,12 @@ def generate_diagram(input_dir, output_base_dir, image_format="png", scale="2"):
     # ---------------------------------------
     # ✅ Load list-accounts.json (ALL accounts)
     # ---------------------------------------
-    all_accounts_file = os.path.join(input_dir, "list-accounts.json")
+    # all_accounts_file = os.path.join(input_dir, "list-accounts.json")
+    all_accounts_files = glob.glob(os.path.join(input_dir, "**", "list-accounts.json"), recursive=True)
+    if not all_accounts_files:
+        raise FileNotFoundError("❗ list-accounts.json not found anywhere in input folder.")
+    all_accounts_file = all_accounts_files[0]
+
     with open(all_accounts_file) as f:
         all_accounts_data = json.load(f)
     all_accounts_list = all_accounts_data.get("Accounts", [])
@@ -94,8 +110,10 @@ def generate_diagram(input_dir, output_base_dir, image_format="png", scale="2"):
     # ✅ Load Accounts per OU
     # ---------------------------------------
     accounts_by_ou = {}
-    account_files_pattern = os.path.join(input_dir, "list-accounts-for-parent-*.json")
-    account_files = glob.glob(account_files_pattern)
+    # account_files_pattern = os.path.join(input_dir, "list-accounts-for-parent-*.json")
+    # account_files = glob.glob(account_files_pattern)
+    account_files_pattern = os.path.join(input_dir, "**", "list-accounts-for-parent-*.json")
+    account_files = glob.glob(account_files_pattern, recursive=True)
     print(f"✅ Found {len(account_files)} account list files for OUs.")
 
     for account_file in account_files:
@@ -158,7 +176,8 @@ def generate_diagram(input_dir, output_base_dir, image_format="png", scale="2"):
     scp_accounts_data = []
     scp_ous_data = []
 
-    policy_files = glob.glob(os.path.join(input_dir, "Policy-*.json"))
+    # policy_files = glob.glob(os.path.join(input_dir, "Policy-*.json"))
+    policy_files = glob.glob(os.path.join(input_dir, "**", "Policy-*.json"), recursive=True)
     for policy_file in policy_files:
         filename = os.path.basename(policy_file)
         if filename.startswith("Policy-Account-"):

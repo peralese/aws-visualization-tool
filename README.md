@@ -16,6 +16,7 @@ It converts AWS CLI JSON exports into **Mermaid** diagrams (PNG/SVG) *and* gener
     - `list-accounts.json` *(complete master account list)*
     - `Policy-Account-<Account Name>.json` *(SCPs attached to Accounts)*
     - `Policy-OU-<OU Name>.json` *(SCPs attached to OUs)*
+  - ✅ **Supports subfolders in the input directory** (recursively parses files in any structure)
 - Outputs:
   - Mermaid `.mmd` diagram source
   - Rendered PNG or SVG diagram
@@ -29,6 +30,7 @@ It converts AWS CLI JSON exports into **Mermaid** diagrams (PNG/SVG) *and* gener
   - Interactive prompts
   - Command-line arguments for automation
   - User-defined output format (PNG/SVG) and scale factor
+  - ✅ **Allows output into nested subfolders for organized runs**
 - Webapp interface (Flask):
   - Upload multiple JSON files or a single ZIP bundle
   - Choose output format (PNG/SVG)
@@ -56,13 +58,32 @@ aws organizations list-organizational-units-for-parent --parent-id <root-id> > l
 aws organizations list-accounts-for-parent --parent-id <ou-id> > list-accounts-for-parent-<OU>.json
 aws organizations list-accounts > list-accounts.json
 ```
+
 ### Export Service Control Policy Attachments
 For each OU and Account:
 ```
 aws organizations list-policies-for-target --target-id <target-id> --filter SERVICE_CONTROL_POLICY > Policy-OU-<OU Name>.json
 aws organizations list-policies-for-target --target-id <target-id> --filter SERVICE_CONTROL_POLICY > Policy-Account-<Account Name>.json
 ```
-Place all resulting JSON files in one folder.
+
+✅ Place all resulting JSON files in your chosen **input directory**, in any folder structure you like:
+
+```
+input/
+  Core/
+    list-roots.json
+    list-organizational-units-for-parent.json
+    list-accounts.json
+  OU-Accounts/
+    list-accounts-for-parent-*.json
+  SCPs/
+    Accounts/
+      Policy-Account-*.json
+    OUs/
+      Policy-OU-*.json
+```
+
+✅ The tool will **recursively find and parse all of them** automatically.
 
 ---
 
@@ -74,15 +95,15 @@ python main.py
 ```
 You’ll be prompted for:
 ```
-Input folder [input]:
-Base output folder [output]:
+Input folder (can include subfolders) [input]:
+Base output folder (can include subfolders) [output]:
 Image format (png/svg) [png]:
 Scale factor [2]:
 ```
 
 **Command-line arguments:**
 ```
-python main.py --input input --output output --format svg --scale 3
+python main.py --input input/Core --output output/TeamA --format svg --scale 3
 ```
 Supports automation in scripts and CI/CD pipelines.
 
@@ -109,7 +130,18 @@ http://localhost:5000
 ## Example Project Structure
 ```
 aws_visualizations/
-  input/                     ← CLI input files
+  input/
+    Core/
+      list-roots.json
+      list-organizational-units-for-parent.json
+      list-accounts.json
+    OU-Accounts/
+      list-accounts-for-parent-*.json
+    SCPs/
+      Accounts/
+        Policy-Account-*.json
+      OUs/
+        Policy-OU-*.json
   output/                    ← CLI results (timestamped folders)
   main.py                    ← CLI entry point
   generator.py               ← Shared generation logic
@@ -123,18 +155,17 @@ aws_visualizations/
 ```
 Example CLI output folder:
 ```
-output/
-  2025-07-11-145100/
-    aws_org_diagram.mmd
-    aws_org_diagram.png
-    aws_org_all_accounts.csv
-    aws_org_all_accounts.docx
-    aws_org_accounts_by_ou.csv
-    aws_org_accounts_by_ou.docx
-    aws_org_scp_accounts.csv
-    aws_org_scp_accounts.docx
-    aws_org_scp_ous.csv
-    aws_org_scp_ous.docx
+output/TeamA/2025-07-11-171500/
+  aws_org_diagram.mmd
+  aws_org_diagram.png
+  aws_org_all_accounts.csv
+  aws_org_all_accounts.docx
+  aws_org_accounts_by_ou.csv
+  aws_org_accounts_by_ou.docx
+  aws_org_scp_accounts.csv
+  aws_org_scp_accounts.docx
+  aws_org_scp_ous.csv
+  aws_org_scp_ous.docx
 ```
 
 ---
@@ -192,5 +223,6 @@ output/
 ## Author
 
 Erick Perales  — IT Architect, Cloud Migration Specialist
+
 
 
