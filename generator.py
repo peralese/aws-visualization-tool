@@ -235,7 +235,7 @@ def generate_diagram(input_dir, output_base_dir, image_format="png", scale="2"):
     # ✅ Build Mermaid Diagram
     # ---------------------------------------
     mermaid_lines = []
-    mermaid_lines.append("graph TD")
+    mermaid_lines.append("graph LR")
     mermaid_lines.append(f'  Root["{root_name}"]')
 
     class_assignments = []
