@@ -1,228 +1,189 @@
-# AWS Visualization Tool
+# AWS Visualization Toolkit
 
-A utility to visualize your AWS Organizations hierarchy as clear, professional diagrams **and structured documentation tables**.  
-
-It converts AWS CLI JSON exports into **Mermaid** diagrams (PNG/SVG) *and* generates **CSV** and **Word (.docx)** tables summarizing your AWS accounts, Organizational Units, and Service Control Policy (SCP) assignments.
+A modular, CLI-driven utility for converting AWS Organizations data into **visual diagrams and structured documentation**. This tool helps cloud architects document account hierarchies, organizational units (OUs), and Service Control Policies (SCPs) using input directly exported from the AWS CLI.
 
 ---
 
-## Features
+## ✨ Features
 
-- Inputs:
-  - AWS Organizations CLI JSON exports:
-    - `list-roots.json`
-    - `list-organizational-units-for-parent.json`
-    - `list-accounts-for-parent-*.json`
-    - `list-accounts.json` *(complete master account list)*
-    - `Policy-Account-<Account Name>.json` *(SCPs attached to Accounts)*
-    - `Policy-OU-<OU Name>.json` *(SCPs attached to OUs)*
-  - ✅ **Supports subfolders in the input directory** (recursively parses files in any structure)
-- Outputs:
-  - Mermaid `.mmd` diagram source
-  - Rendered PNG or SVG diagram
-  - Timestamped subfolders for organized history
-  - CSV and DOCX tables:
-    - **Master Account Table** (all accounts with OU assignment)
-    - **OU Breakdown Table** (accounts grouped by OU)
-    - **SCP Assignments for Accounts**
-    - **SCP Assignments for OUs**
-- CLI interface:
-  - Interactive prompts
-  - Command-line arguments for automation
-  - User-defined output format (PNG/SVG) and scale factor
-  - ✅ **Allows output into nested subfolders for organized runs**
-- Webapp interface (Flask):
-  - Upload multiple JSON files or a single ZIP bundle
-  - Choose output format (PNG/SVG)
-  - Specify scale factor (e.g., 1, 2, 3, ...)
-  - Flash error handling and user-friendly feedback
+- ✅ Modular design: plug-and-play modules for accounts, SCPs, (networking coming soon)
+- ✅ Interactive CLI or scripted automation
+- ✅ Accepts input from:
+  - AWS CLI JSON exports
+  - Folder structures with subdirectories
+- ✅ Outputs include:
+  - Mermaid diagrams (.mmd → PNG/SVG)
+  - CSV and DOCX reports
+- ✅ Output folders are timestamped for easy auditing
+- 🔜 ZIP upload support (planned)
+- 🔜 Web interface support (Flask-based prototype complete)
 
 ---
 
-## Installation & Setup
+## 🧩 Supported Modules
 
-### Requirements
-- Python 3.8+
-- Node.js / npm (for Mermaid CLI)
+### 1. Accounts & OU Visualization
+- Mermaid diagram showing Root → OUs → Accounts
+- Color-coded ACTIVE / SUSPENDED status
+- Master list of all accounts with OU mapping
+- Grouped table of accounts per OU
 
-### Install Dependencies
-```
-pip install Flask python-docx
-npm install -g @mermaid-js/mermaid-cli
-```
+### 2. Service Control Policies (SCP)
+- CSV and DOCX reports of SCPs attached to:
+  - Accounts
+  - OUs
+- Automatically parses `Policy-Account-*` and `Policy-OU-*` files
 
-### Export Your AWS Organizations Data
-```
-aws organizations list-roots > list-roots.json
-aws organizations list-organizational-units-for-parent --parent-id <root-id> > list-organizational-units-for-parent.json
-aws organizations list-accounts-for-parent --parent-id <ou-id> > list-accounts-for-parent-<OU>.json
-aws organizations list-accounts > list-accounts.json
-```
+---
 
-### Export Service Control Policy Attachments
-For each OU and Account:
-```
-aws organizations list-policies-for-target --target-id <target-id> --filter SERVICE_CONTROL_POLICY > Policy-OU-<OU Name>.json
-aws organizations list-policies-for-target --target-id <target-id> --filter SERVICE_CONTROL_POLICY > Policy-Account-<Account Name>.json
-```
+## 📁 Input Structure
 
-✅ Place all resulting JSON files in your chosen **input directory**, in any folder structure you like:
+Supports nested folders or flat structure:
 
 ```
 input/
-  Core/
-    list-roots.json
-    list-organizational-units-for-parent.json
-    list-accounts.json
-  OU-Accounts/
-    list-accounts-for-parent-*.json
-  SCPs/
-    Accounts/
-      Policy-Account-*.json
-    OUs/
-      Policy-OU-*.json
+  list-roots.json
+  list-organizational-units-for-parent.json
+  list-accounts.json
+  list-accounts-for-parent-OU1.json
+  list-accounts-for-parent-OU2.json
+  policies/
+    Policy-Account-Core.json
+    Policy-OU-DevOps.json
 ```
 
-✅ The tool will **recursively find and parse all of them** automatically.
+All files are parsed **recursively** — you may organize them freely.
 
 ---
 
-## Running the CLI Tool
+## 🛠️ Installation
 
-**Interactive mode:**
+### Prerequisites
+- Python 3.8+
+- Node.js (for Mermaid CLI)
+
+### Install Python and Node dependencies
+```bash
+pip install -r requirements.txt
+npm install -g @mermaid-js/mermaid-cli
 ```
+
+---
+
+## 📤 Exporting AWS Data
+
+### AWS Organizations (Accounts & OUs)
+```bash
+aws organizations list-roots > list-roots.json
+aws organizations list-organizational-units-for-parent --parent-id <root-id> > list-organizational-units-for-parent.json
+aws organizations list-accounts > list-accounts.json
+aws organizations list-accounts-for-parent --parent-id <ou-id> > list-accounts-for-parent-<OU>.json
+```
+
+### SCP Attachments
+```bash
+aws organizations list-policies-for-target --target-id <target-id> --filter SERVICE_CONTROL_POLICY > Policy-Account-<Name>.json
+aws organizations list-policies-for-target --target-id <target-id> --filter SERVICE_CONTROL_POLICY > Policy-OU-<Name>.json
+```
+
+---
+
+## 🚀 Running the CLI
+
+### 🔄 Interactive CLI
+```bash
 python main.py
 ```
-You’ll be prompted for:
-```
-Input folder (can include subfolders) [input]:
-Base output folder (can include subfolders) [output]:
-Image format (png/svg) [png]:
-Scale factor [2]:
-```
 
-**Command-line arguments:**
-```
-python main.py --input input/Core --output output/TeamA --format svg --scale 3
-```
-Supports automation in scripts and CI/CD pipelines.
+You’ll be prompted to choose a module and specify:
+- Input folder
+- Output folder
+- Image format (PNG or SVG)
+- Scale factor (1–5)
 
----
-
-## Running the Webapp
-
-Start the Flask server:
+### ⚙️ Scriptable CLI (planned)
+Command-line arguments like:
+```bash
+python main.py --module accounts --input input/ --output output/ --format svg --scale 2
 ```
-cd webapp
-flask run
-```
-Open in your browser:
-```
-http://localhost:5000
-```
-- Upload multiple JSON files or a single ZIP archive
-- Choose output format (PNG/SVG)
-- Specify scale factor
-- Click **Generate Diagram** to receive your downloadable image and tables
+Coming soon.
 
 ---
 
-## Example Project Structure
-```
-aws_visualizations/
-  input/
-    Core/
-      list-roots.json
-      list-organizational-units-for-parent.json
-      list-accounts.json
-    OU-Accounts/
-      list-accounts-for-parent-*.json
-    SCPs/
-      Accounts/
-        Policy-Account-*.json
-      OUs/
-        Policy-OU-*.json
-  output/                    ← CLI results (timestamped folders)
-  main.py                    ← CLI entry point
-  generator.py               ← Shared generation logic
+## 📂 Output Examples
 
-  webapp/
-    app.py                   ← Flask web server
-    templates/
-      index.html             ← Web upload form
-    uploads/                 ← Temporary upload storage
-    outputs/                 ← Generated diagrams and tables
+Outputs are stored in a timestamped subfolder:
 ```
-Example CLI output folder:
-```
-output/TeamA/2025-07-11-171500/
+output/2025-07-18-101522/
   aws_org_diagram.mmd
   aws_org_diagram.png
   aws_org_all_accounts.csv
   aws_org_all_accounts.docx
   aws_org_accounts_by_ou.csv
   aws_org_accounts_by_ou.docx
-  aws_org_scp_accounts.csv
-  aws_org_scp_accounts.docx
-  aws_org_scp_ous.csv
-  aws_org_scp_ous.docx
+  scp_accounts.csv
+  scp_accounts.docx
+  scp_ous.csv
+  scp_ous.docx
 ```
 
 ---
 
-## Outputs
+## 🧠 Diagram Features
 
-✅ **Mermaid Diagram**  
-- Shows Root ➜ OUs ➜ Accounts hierarchy
-- Color-coded ACTIVE/SUSPENDED
-- Supports PNG and SVG
-
-✅ **Master Account Table**  
-- All accounts from list-accounts.json
-- Includes OU assignment or “None”
-- CSV and DOCX formats
-
-✅ **OU Breakdown Table**  
-- Only accounts assigned to OUs
-- CSV and DOCX formats
-
-✅ **SCP Assignments for Accounts**  
-- All Service Control Policies attached to accounts
-- CSV and DOCX formats
-
-✅ **SCP Assignments for OUs**  
-- All Service Control Policies attached to OUs
-- CSV and DOCX formats
+- Top-down or left-right layout (configurable)
+- Root node links to OUs
+- OUs grouped with accounts inside subgraphs
+- ACTIVE / SUSPENDED status color-coded
+- Prevents cycles for accounts that match OU names
+- Scalable image resolution using `--scale`
 
 ---
 
-## Diagram Features
+## 🧱 Project Structure
 
-- Root node explicitly linked to each OU
-- OU subgraphs with contained accounts
-- Self-referencing accounts automatically renamed to avoid cycles
-- Color-coded ACTIVE and SUSPENDED status
-- Supports PNG and SVG output formats
-- Scalable resolution with `--scale` option
-- Clean, timestamped output folders for history and audit
-
----
-
-## Potential Future Enhancements
-
-- Inline diagram preview in webapp
-- Nicer styling with Bootstrap
-- Input validation before generation (missing required files check)
-- Auto-cleanup of old output folders
-- Support for nested OU hierarchies
-- Packaging as an installable CLI tool
-- Hosting the Flask interface online
+```
+aws-visualization-tool/
+├── main.py
+├── input/
+├── output/
+├── common/
+│   └── utils.py
+├── modules/
+│   ├── accounts_runner.py
+│   └── scp_runner.py
+└── webapp/ (optional prototype)
+    ├── app.py
+    ├── uploads/
+    ├── outputs/
+    └── templates/
+        └── index.html
+```
 
 ---
 
-## Author
+## 🔭 Roadmap
 
-Erick Perales  — IT Architect, Cloud Migration Specialist
+### 🔜 Near Term
+- Accept `.zip` input (auto-extract to temp dir)
+- Command-line args for `--input`, `--output`, `--format`, etc.
+- Option to auto-open the diagram after generation
+
+### 🧩 Future Modules
+- VPC + Subnet layout diagrams
+- EC2 / RDS / Lambda inventory mapping
+- IAM policy trust graphing
+- Cost by account/OU (CUR parsing)
+
+---
+
+## 👨‍💻 Author
+
+**Erick Perales**  
+IT Architect, Cloud Migration Specialist  
+[https://github.com/peralese](https://github.com/peralese)
+
+
 
 
 
