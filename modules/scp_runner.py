@@ -1,51 +1,75 @@
 import os
 import json
 import glob
-from common.utils import normalize, export_table_csv_docx
+import datetime
+from common.utils import export_table_csv_docx
+
+
+def parse_scp_files(input_root):
+    scp_rows_accounts = []
+    scp_rows_ous = []
+
+    for filepath in glob.glob(os.path.join(input_root, "**", "Policy-*.json"), recursive=True):
+        with open(filepath) as f:
+            data = json.load(f)
+            policies = data.get("Policies", [])
+
+        filename = os.path.basename(filepath)
+        if filename.startswith("Policy-Account-"):
+            name = filename.replace("Policy-Account-", "").replace(".json", "")
+            for p in policies:
+                scp_rows_accounts.append([
+                    name,
+                    p.get("Name", ""),
+                    p.get("Id", ""),
+                    p.get("Arn", ""),
+                    p.get("Description", "")
+                ])
+
+        elif filename.startswith("Policy-OU-"):
+            name = filename.replace("Policy-OU-", "").replace(".json", "")
+            for p in policies:
+                scp_rows_ous.append([
+                    name,
+                    p.get("Name", ""),
+                    p.get("Id", ""),
+                    p.get("Arn", ""),
+                    p.get("Description", "")
+                ])
+
+    return scp_rows_accounts, scp_rows_ous
+
 
 def run():
-    input_dir = "input"
-    output_dir = "output"
+    print("\n🔐 SCP Summary Generator")
+    input_root = input("Enter the path to the folder containing SCP policy files: ").strip()
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H%M%S")
+    output_dir = os.path.join("output", f"SCP_Summary_{timestamp}")
     os.makedirs(output_dir, exist_ok=True)
 
-    print("\n🟣 Processing Service Control Policies")
-    print(f"✅ Input folder: {input_dir}")
-    print(f"✅ Output folder: {output_dir}")
+    scp_rows_accounts, scp_rows_ous = parse_scp_files(input_root)
 
-    # Discover policy files
-    policy_files = glob.glob(os.path.join(input_dir, "**", "Policy-*.json"), recursive=True)
-    print(f"✅ Found {len(policy_files)} SCP policy attachment files.")
+    if not scp_rows_accounts and not scp_rows_ous:
+        print("❗ No SCP data found.")
+        return
 
-    account_policies = []
-    ou_policies = []
+    if scp_rows_accounts:
+        export_table_csv_docx(
+            scp_rows_accounts,
+            ["Account Name", "Policy Name", "Policy ID", "Policy ARN", "Description"],
+            os.path.join(output_dir, "scp_accounts.csv"),
+            os.path.join(output_dir, "scp_accounts.docx"),
+            "Service Control Policies Attached to Accounts"
+        )
 
-    for pf in policy_files:
-        name = os.path.basename(pf).replace("Policy-", "").replace(".json", "")
-        parts = name.split("-", 1)
-        if len(parts) != 2:
-            continue
-        target_type, target_name = parts
+    if scp_rows_ous:
+        export_table_csv_docx(
+            scp_rows_ous,
+            ["OU Name", "Policy Name", "Policy ID", "Policy ARN", "Description"],
+            os.path.join(output_dir, "scp_ous.csv"),
+            os.path.join(output_dir, "scp_ous.docx"),
+            "Service Control Policies Attached to Organizational Units"
+        )
 
-        with open(pf) as f:
-            policies = json.load(f).get("Policies", [])
+    print(f"✅ SCP summary exported to folder: {output_dir}")
 
-        for p in policies:
-            row = [target_name, p.get("Name"), p.get("Id"), p.get("AwsManaged", False)]
-            if target_type.lower() == "account":
-                account_policies.append(row)
-            elif target_type.lower() == "ou":
-                ou_policies.append(row)
-
-    export_table_csv_docx(account_policies,
-        ["Account Name", "Policy Name", "Policy ID", "AWS Managed"],
-        os.path.join(output_dir, "scp_accounts.csv"),
-        os.path.join(output_dir, "scp_accounts.docx"),
-        "Service Control Policies - Accounts")
-
-    export_table_csv_docx(ou_policies,
-        ["OU Name", "Policy Name", "Policy ID", "AWS Managed"],
-        os.path.join(output_dir, "scp_ous.csv"),
-        os.path.join(output_dir, "scp_ous.docx"),
-        "Service Control Policies - Organizational Units")
-
-    print("✅ SCP summary tables generated.")
