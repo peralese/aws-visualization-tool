@@ -1,4 +1,4 @@
-# AWS Visualization Toolkit
+## AWS Visualization Toolkit
 
 A modular, CLI-driven utility for converting AWS Organizations and Infrastructure data into **professional diagrams and structured documentation**. This tool helps cloud architects document account hierarchies, organizational units (OUs), service control policies (SCPs), and networking topology using JSON exported from the AWS CLI.
 
@@ -13,10 +13,11 @@ A modular, CLI-driven utility for converting AWS Organizations and Infrastructur
   - Folder structures with subdirectories
 - ✅ Recursively searches for input files
 - ✅ Outputs include:
-  - Mermaid diagrams (.mmd → PNG/SVG)
+  - Mermaid (optional) and Diagrams (.png) network visuals
   - CSV, DOCX, and Markdown deep dives
 - ✅ Output folders are timestamped for organized audits
 - ✅ Per-account VPC deep dives with multi-section Markdown reports
+- ✅ Network diagrams per VPC rendered with **Diagrams (mingrammer)**
 - 🔜 ZIP upload support
 - 🔜 Full web interface (Flask prototype available)
 
@@ -38,9 +39,9 @@ A modular, CLI-driven utility for converting AWS Organizations and Infrastructur
 
 ### 3. VPC & Networking Summary
 - Summary table of all VPCs across accounts:
-  - Includes VPC ID, all associated CIDRs, IPv6 status, Flow Logs, TGW, Endpoints, etc.
+  - Includes VPC ID, **all associated CIDRs**, IPv6 status, Flow Logs, TGW, Endpoints, etc.
 - Per-VPC deep dive:
-  - Multi-section Markdown report with:
+  - Multi-section **Markdown report** with:
     - VPC Configuration
     - Subnet layout (CIDR, AZ, type, IPs)
     - Route Table Summary
@@ -95,7 +96,8 @@ All files are discovered recursively.
 ### Prerequisites
 
 - Python 3.8+
-- Node.js (for Mermaid CLI)
+- Node.js (for optional Mermaid diagrams)
+- Graphviz (for Diagrams)
 
 ### Install Python and Node dependencies
 
@@ -103,6 +105,11 @@ All files are discovered recursively.
 pip install -r requirements.txt
 npm install -g @mermaid-js/mermaid-cli
 ```
+
+> ⚠️ If using Diagrams for network visuals, you must also install Graphviz:
+> - Windows: https://graphviz.org/download/
+> - macOS: `brew install graphviz`
+> - Linux: `sudo apt install graphviz`
 
 ---
 
@@ -162,10 +169,11 @@ You’ll be prompted to choose a module and specify:
 Outputs are written to a timestamped subfolder:
 ```
 output/
-  VPC_Summary_2025-07-22-152313/
+  VPC_Summary_2025-07-23-121806/
     vpcs_summary.csv
-    vpcs_summary.docx
-    deepdive_nonRISE_vpc-0fcb10180a6b1e53d.md  # ✅ Multi-section Markdown
+    vpcs_summary.md                ✅ Markdown summary table
+    deepdive_<account>_<vpc>.md    ✅ Multi-section Markdown
+    diagram_<account>_<vpc>.png    ✅ Diagrams-based PNG
   AWS_Accounts_2025-07-22-093122/
     aws_org_diagram.png
     aws_org_all_accounts.csv
@@ -179,11 +187,13 @@ output/
 
 ## 🧠 Diagram Features
 
-- Top-down or left-right layout (configurable)
-- Root → OUs → grouped accounts
-- ACTIVE / SUSPENDED status color-coded
-- Mermaid source .mmd files
-- Export to PNG or SVG (scalable)
+- Mermaid-based (optional) diagrams
+- Diagrams (mingrammer) for rich AWS network visuals
+- Per-VPC PNG network diagrams:
+  - VPC → Subnets (clustered)
+  - EC2 icons per subnet
+  - Interface Endpoints
+  - Transit Gateway
 
 ---
 
@@ -199,7 +209,8 @@ aws-visualization-tool/
 ├── modules/
 │   ├── accounts_runner.py
 │   ├── scp_runner.py
-│   └── network_runner.py   # includes rich Markdown exporter
+│   ├── network_runner.py
+│   └── vpc_diagram_generator.py  ✅ New
 └── webapp/ (optional Flask prototype)
     ├── app.py
     ├── uploads/
@@ -217,6 +228,7 @@ aws-visualization-tool/
 - Open image after generation
 - Markdown-to-PDF/HTML exporter
 - Per-VPC network diagrams (via Mermaid or Diagrams.py)
+- **Save all generated tables as Markdown (in addition to DOCX/CSV)**
 
 ### 🧩 Future Modules
 - EC2 / RDS / Lambda inventory
@@ -231,5 +243,3 @@ aws-visualization-tool/
 **Erick Perales**  
 IT Architect, Cloud Migration Specialist  
 [https://github.com/peralese](https://github.com/peralese)
-
-

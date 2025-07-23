@@ -4,8 +4,10 @@ import json
 import datetime
 import subprocess
 from collections import defaultdict
-
+import shutil
 from common.utils import export_table_csv_docx
+from modules.vpc_diagram_generator import generate_vpc_diagram
+
 
 # -------------------------------------------------------------------
 # Helpers
@@ -145,10 +147,6 @@ def parse_account(acct_dir: str, account: str, region: str):
         vid   = v["VpcId"]
         vname = _tag_name(v.get("Tags", []))
 
-        print("DEBUG: TGW Map =", dict(tgw_map))
-        print(f"DEBUG: Endpoints for {vid} = {ep_map.get(vid)}")
-
-
         # cidr          = v.get("CidrBlock", "")
         # -- Collect ALL CIDR blocks (primary + associations)
         cidr_blocks = [assoc["CidrBlock"] for assoc in v.get("CidrBlockAssociationSet", [])]
@@ -260,7 +258,19 @@ def parse_account(acct_dir: str, account: str, region: str):
         }
 
     return summary_rows, deepdive_dict
+# -------------------------------------------------------------------
+# CLI Export Summary as markdown
+# -------------------------------------------------------------------
 
+def export_summary_markdown(headers: list[str], rows: list[list[str]], out_path: str, title: str):
+    lines = [f"# {title}", ""]
+    lines.append("|" + "|".join(headers) + "|")
+    lines.append("|" + "|".join(["---"] * len(headers)) + "|")
+    for row in rows:
+        lines.append("|" + "|".join(str(cell) for cell in row) + "|")
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+    print(f"   •  Markdown summary saved: {out_path}")
 
 # -------------------------------------------------------------------
 # CLI entry‑point
@@ -295,6 +305,13 @@ def run():
         # Write rich deep‑dives
         for vid, sections in deep_dict.items():
             export_rich_deep_dive(acct_name, vid, sections, out_dir)
+            vname = ""
+            for row in sections.get("vpc", []):
+                if row[0].lower() == "name tag":
+                    vname = row[1]
+                    break
+            generate_vpc_diagram(acct_name, vid, vname, sections, out_dir)
+
 
     # -----------------------------------------------------------------
     # Export consolidated summary
@@ -303,6 +320,7 @@ def run():
         print("❗  No VPCs found. Check folder path and filenames.")
         return
 
+    # Export CSV
     export_table_csv_docx(
         all_summary_rows,
         summary_headers,
@@ -310,6 +328,15 @@ def run():
         os.path.join(out_dir, "vpcs_summary.docx"),
         "AWS VPC Summary (All Accounts)",
     )
+
+    # Export Markdown
+    export_summary_markdown(
+        summary_headers,
+        all_summary_rows,
+        os.path.join(out_dir, "vpcs_summary.md"),
+        "AWS VPC Summary (All Accounts)",
+)
+
     print(f"\n✅  All reports saved in: {out_dir}\n")
 
 
